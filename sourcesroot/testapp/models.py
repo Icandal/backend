@@ -68,7 +68,7 @@ class TrialData(models.Model):
 
     client_start_time = models.BigIntegerField()
     client_stimulus_time = models.BigIntegerField(null=True, blank=True)
-    client_fixation_time = models.BigIntegerField(null=True, blank=True)   # добавлено
+    client_fixation_time = models.BigIntegerField(null=True, blank=True)   # добавлено поле
     client_response_time = models.BigIntegerField(null=True, blank=True)
 
     received_at = models.DateTimeField(auto_now_add=True)
@@ -107,10 +107,10 @@ class NBackTrialData(models.Model):
 
     n_level = models.IntegerField(default=1)
     is_target = models.BooleanField(default=False)
-    is_false_alarm = models.BooleanField(default=False, null=True, blank=True)   # исправлено
-    is_miss = models.BooleanField(default=False, null=True, blank=True)           # исправлено
-    is_correct_rejection = models.BooleanField(default=False, null=True, blank=True) # исправлено
-    is_hit = models.BooleanField(default=False, null=True, blank=True)            # исправлено
+    is_false_alarm = models.BooleanField(default=False, null=True, blank=True)
+    is_miss = models.BooleanField(default=False, null=True, blank=True)
+    is_correct_rejection = models.BooleanField(default=False, null=True, blank=True)
+    is_hit = models.BooleanField(default=False, null=True, blank=True)
 
     stimulus_type = models.CharField(
         max_length=50,
@@ -141,52 +141,38 @@ class NBackTrialData(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        # Вычисляем время реакции
         if self.client_stimulus_time and self.client_response_time and not self.reaction_time:
             self.reaction_time = float(self.client_response_time - self.client_stimulus_time)
-
-        # Вычисляем правильность ответа
         if self.response and self.correct_response and self.is_correct is None:
             self.is_correct = self.response == self.correct_response
-
         self.responded = bool(self.response and self.response.strip())
-
-        # Вычисляем метрики (исходные вычисления)
         # miss
         if self.is_target and not self.responded:
             self.is_miss = True
         else:
             self.is_miss = False
-
         # correct rejection
         if not self.is_target and not self.responded:
             self.is_correct_rejection = True
         else:
             self.is_correct_rejection = False
-
         # hit
         if self.is_target and self.is_correct:
             self.is_hit = True
         else:
             self.is_hit = False
-
         # false alarm
         if not self.is_target and self.responded:
             self.is_false_alarm = True
         else:
             self.is_false_alarm = False
-
-        # Защита от None (на случай, если что-то пошло не так)
         for field in ['is_hit', 'is_miss', 'is_false_alarm', 'is_correct_rejection']:
             if getattr(self, field) is None:
                 setattr(self, field, False)
-
-        # Вычисляем задержки
         if self.client_start_time and self.client_stimulus_time:
             self.pre_stimulus_delay = float(self.client_stimulus_time - self.client_start_time)
         if self.client_stimulus_time and self.client_fixation_time:
             self.stimulus_to_fixation_delay = float(self.client_fixation_time - self.client_stimulus_time)
-
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -233,7 +219,6 @@ class GoNoGoTrialData(models.Model):
     def save(self, *args, **kwargs):
         if self.response and self.correct_response and self.is_correct is None:
             self.is_correct = (self.response == self.correct_response)
-        # Если всё же is_correct остался None, установим False
         if self.is_correct is None:
             self.is_correct = False
         super().save(*args, **kwargs)
