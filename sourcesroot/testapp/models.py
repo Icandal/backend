@@ -68,6 +68,7 @@ class TrialData(models.Model):
 
     client_start_time = models.BigIntegerField()
     client_stimulus_time = models.BigIntegerField(null=True, blank=True)
+    client_fixation_time = models.BigIntegerField(null=True, blank=True)   # добавлено
     client_response_time = models.BigIntegerField(null=True, blank=True)
 
     received_at = models.DateTimeField(auto_now_add=True)
