@@ -17,6 +17,7 @@ from .models import (
 from .serializers import (
     ParticipantSerializer,
     BatchTrialDataSerializer,
+    ParticipantDemographicsSerializer,
 )
 
 
@@ -68,6 +69,7 @@ def health_check(request):
                 "/api/nback/trials/batch/",
                 "/api/gonogo/trials/batch/",
                 "/api/questionnaire/trials/batch/",
+                "/api/participant/demographics/",
             ],
         }
     )
@@ -226,3 +228,37 @@ class CompleteExperimentSessionView(BaseAPIView):
                 "completed_at": session.completed_at,
             }
         )
+
+
+class UpdateParticipantDemographicsView(BaseAPIView):
+    def post(self, request):
+        validation_error = self.validate_required_fields(request.data, ["participant_id", "age", "gender"])
+        if validation_error:
+            return validation_error
+        
+        participant_id = request.data.get("participant_id")
+        age = request.data.get("age")
+        gender = request.data.get("gender")
+        
+        # Валидация пола на русском (как приходит с фронта)
+        if gender not in ['Мужской', 'Женский']:
+            return self.create_error_response("Пол должен быть 'Мужской' или 'Женский'")
+        
+        # Преобразуем в код модели
+        gender_code = 'M' if gender == 'Мужской' else 'F'
+        
+        try:
+            participant = Participant.objects.get(id=participant_id)
+        except Participant.DoesNotExist:
+            return self.create_error_response("Участник не найден", status.HTTP_404_NOT_FOUND)
+        
+        participant.age = age
+        participant.gender = gender_code
+        participant.save()
+        
+        return self.create_response({
+            "message": "Демографические данные сохранены",
+            "participant_id": participant.id,
+            "age": participant.age,
+            "gender": participant.get_gender_display()
+        })

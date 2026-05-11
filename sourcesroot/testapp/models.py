@@ -10,6 +10,14 @@ class Participant(models.Model):
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     user_agent = models.TextField(blank=True, null=True)
     session_token = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Демографические поля
+    age = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Возраст")
+    GENDER_CHOICES = [
+        ('M', 'Мужской'),
+        ('F', 'Женский'),
+    ]
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True, verbose_name="Пол")
 
     class Meta:
         unique_together = ["participant_id", "session_number"]
@@ -68,7 +76,7 @@ class TrialData(models.Model):
 
     client_start_time = models.BigIntegerField()
     client_stimulus_time = models.BigIntegerField(null=True, blank=True)
-    client_fixation_time = models.BigIntegerField(null=True, blank=True)   # добавлено поле
+    client_fixation_time = models.BigIntegerField(null=True, blank=True)
     client_response_time = models.BigIntegerField(null=True, blank=True)
 
     received_at = models.DateTimeField(auto_now_add=True)

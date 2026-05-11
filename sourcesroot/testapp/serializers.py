@@ -17,7 +17,16 @@ class ParticipantSerializer(serializers.ModelSerializer):
             "session_number",
             "registration_date",
             "session_token",
+            "age",
+            "gender",
         ]
+
+
+class ParticipantDemographicsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Participant
+        fields = ['id', 'age', 'gender']
+        read_only_fields = ['id']
 
 
 # ---------- Flanker / универсальный ----------
