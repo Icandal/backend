@@ -5,6 +5,7 @@ from .models import (
     TrialData,
     GoNoGoTrialData,
     QuestionnaireTrialData,
+    FatigueRating,
 )
 
 
@@ -19,14 +20,22 @@ class ParticipantSerializer(serializers.ModelSerializer):
             "session_token",
             "age",
             "gender",
+            "specialization",
         ]
 
 
 class ParticipantDemographicsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Participant
-        fields = ['id', 'age', 'gender']
+        fields = ['id', 'age', 'gender', 'specialization']
         read_only_fields = ['id']
+
+
+class FatigueRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FatigueRating
+        fields = ['id', 'experiment_session', 'rating', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
 
 # ---------- Flanker / универсальный ----------
@@ -96,7 +105,6 @@ class BatchTrialDataSerializer(serializers.Serializer):
             if trial_number in seen_trial_numbers:
                 continue
             seen_trial_numbers.add(trial_number)
-            # Удаляем старый триал с тем же номером (опционально)
             TrialData.objects.filter(experiment_block_id=block_id, trial_number=trial_number).delete()
             trial_data["experiment_block_id"] = block_id
             serializer = TrialDataSerializer(data=trial_data)

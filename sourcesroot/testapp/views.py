@@ -13,11 +13,13 @@ from .models import (
     ExperimentSession,
     ExperimentBlock,
     TrialData,
+    FatigueRating,
 )
 from .serializers import (
     ParticipantSerializer,
     BatchTrialDataSerializer,
     ParticipantDemographicsSerializer,
+    FatigueRatingSerializer,
 )
 
 
@@ -70,6 +72,7 @@ def health_check(request):
                 "/api/gonogo/trials/batch/",
                 "/api/questionnaire/trials/batch/",
                 "/api/participant/demographics/",
+                "/api/fatigue-rating/",
             ],
         }
     )
@@ -84,6 +87,7 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
         try:
             participant_id = request.data.get("participant_id")
             session_number = request.data.get("session_number")
+            fatigue_rating = request.data.get("fatigue_rating")
 
             validation_error = self.validate_required_fields(
                 request.data, ["participant_id", "session_number"]
@@ -95,22 +99,36 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
                 participant_id=participant_id, session_number=session_number
             )
             if existing:
+                session = ExperimentSession.objects.create(participant=existing)
+                if fatigue_rating is not None:
+                    FatigueRating.objects.create(
+                        experiment_session=session,
+                        rating=fatigue_rating
+                    )
                 return self.create_response(
                     {
-                        "message": "Участник уже зарегистрирован",
+                        "message": "Участник уже зарегистрирован, создана новая сессия",
                         "participant_id": existing.id,
                         "session_token": existing.session_token,
+                        "session_id": session.id,
                     }
                 )
 
             participant = Participant.objects.create(
                 participant_id=participant_id, session_number=session_number
             )
+            session = ExperimentSession.objects.create(participant=participant)
+            if fatigue_rating is not None:
+                FatigueRating.objects.create(
+                    experiment_session=session,
+                    rating=fatigue_rating
+                )
             return self.create_response(
                 {
                     "message": "Регистрация успешна",
                     "participant_id": participant.id,
                     "session_token": participant.session_token,
+                    "session_id": session.id,
                 },
                 status.HTTP_201_CREATED,
             )
@@ -239,12 +257,11 @@ class UpdateParticipantDemographicsView(BaseAPIView):
         participant_id = request.data.get("participant_id")
         age = request.data.get("age")
         gender = request.data.get("gender")
+        specialization = request.data.get("specialization")
         
-        # Валидация пола на русском (как приходит с фронта)
         if gender not in ['Мужской', 'Женский']:
             return self.create_error_response("Пол должен быть 'Мужской' или 'Женский'")
         
-        # Преобразуем в код модели
         gender_code = 'M' if gender == 'Мужской' else 'F'
         
         try:
@@ -254,11 +271,43 @@ class UpdateParticipantDemographicsView(BaseAPIView):
         
         participant.age = age
         participant.gender = gender_code
+        if specialization:
+            valid_specializations = dict(Participant.SPECIALIZATION_CHOICES).keys()
+            if specialization in valid_specializations:
+                participant.specialization = specialization
+            else:
+                return self.create_error_response(f"Недопустимое значение specialization: {specialization}")
         participant.save()
         
         return self.create_response({
             "message": "Демографические данные сохранены",
             "participant_id": participant.id,
             "age": participant.age,
-            "gender": participant.get_gender_display()
+            "gender": participant.get_gender_display(),
+            "specialization": participant.get_specialization_display() if participant.specialization else None,
         })
+
+
+class SaveFatigueRatingView(BaseAPIView):
+    def post(self, request):
+        validation_error = self.validate_required_fields(request.data, ["session_id", "rating"])
+        if validation_error:
+            return validation_error
+        
+        session_id = request.data.get("session_id")
+        rating = request.data.get("rating")
+        
+        if not (1 <= rating <= 100):
+            return self.create_error_response("Оценка усталости должна быть от 1 до 100")
+        
+        session = get_object_or_404(ExperimentSession, id=session_id)
+        fatigue = FatigueRating.objects.create(experiment_session=session, rating=rating)
+        
+        return self.create_response(
+            {
+                "message": "Оценка усталости сохранена",
+                "fatigue_id": fatigue.id,
+                "rating": fatigue.rating,
+            },
+            status.HTTP_201_CREATED,
+        )

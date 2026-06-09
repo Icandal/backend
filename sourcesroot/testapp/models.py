@@ -11,13 +11,33 @@ class Participant(models.Model):
     user_agent = models.TextField(blank=True, null=True)
     session_token = models.CharField(max_length=100, blank=True, null=True)
     
-    # Демографические поля
     age = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="Возраст")
     GENDER_CHOICES = [
         ('M', 'Мужской'),
         ('F', 'Женский'),
     ]
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True, verbose_name="Пол")
+    
+    SPECIALIZATION_CHOICES = [
+        ('IT', 'Программирование / IT'),
+        ('PSY', 'Психология'),
+        ('BIO', 'Биология'),
+        ('MED', 'Медицина'),
+        ('ENG', 'Инженерия'),
+        ('MATH', 'Математика'),
+        ('PHY', 'Физика'),
+        ('LING', 'Лингвистика'),
+        ('ECO', 'Экономика'),
+        ('DES', 'Дизайн'),
+        ('OTHER', 'Другое'),
+    ]
+    specialization = models.CharField(
+        max_length=10,
+        choices=SPECIALIZATION_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name="Специализация / направление подготовки"
+    )
 
     class Meta:
         unique_together = ["participant_id", "session_number"]
@@ -154,22 +174,18 @@ class NBackTrialData(models.Model):
         if self.response and self.correct_response and self.is_correct is None:
             self.is_correct = self.response == self.correct_response
         self.responded = bool(self.response and self.response.strip())
-        # miss
         if self.is_target and not self.responded:
             self.is_miss = True
         else:
             self.is_miss = False
-        # correct rejection
         if not self.is_target and not self.responded:
             self.is_correct_rejection = True
         else:
             self.is_correct_rejection = False
-        # hit
         if self.is_target and self.is_correct:
             self.is_hit = True
         else:
             self.is_hit = False
-        # false alarm
         if not self.is_target and self.responded:
             self.is_false_alarm = True
         else:
@@ -256,3 +272,13 @@ class QuestionnaireTrialData(models.Model):
 
     def __str__(self):
         return f"Опросник (блок {self.experiment_block_id}) - вопрос #{self.trial_number}"
+
+
+class FatigueRating(models.Model):
+    id = models.AutoField(primary_key=True)
+    experiment_session = models.ForeignKey(ExperimentSession, on_delete=models.CASCADE)
+    rating = models.PositiveSmallIntegerField(help_text="Уровень усталости от 1 до 100")
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Усталость (сессия {self.experiment_session.id}): {self.rating}"
