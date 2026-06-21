@@ -88,6 +88,7 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
             participant_id = request.data.get("participant_id")
             session_number = request.data.get("session_number")
             fatigue_rating = request.data.get("fatigue_rating")
+            specialization = request.data.get("specialization")  # добавили
 
             validation_error = self.validate_required_fields(
                 request.data, ["participant_id", "session_number"]
@@ -115,7 +116,9 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
                 )
 
             participant = Participant.objects.create(
-                participant_id=participant_id, session_number=session_number
+                participant_id=participant_id,
+                session_number=session_number,
+                specialization=specialization,  # сохраняем
             )
             session = ExperimentSession.objects.create(participant=participant)
             if fatigue_rating is not None:
@@ -142,7 +145,8 @@ class StartExperimentSessionView(BaseAPIView):
         if validation_error:
             return validation_error
 
-        participant = get_object_or_404(Participant, id=request.data.get("participant_id"))
+        # Исправлено: ищем по полю participant_id (строковому), а не по id
+        participant = get_object_or_404(Participant, participant_id=request.data.get("participant_id"))
         session = ExperimentSession.objects.create(participant=participant)
 
         return self.create_response(
@@ -265,7 +269,7 @@ class UpdateParticipantDemographicsView(BaseAPIView):
         gender_code = 'M' if gender == 'Мужской' else 'F'
         
         try:
-            participant = Participant.objects.get(id=participant_id)
+            participant = Participant.objects.get(participant_id=participant_id)  # исправлено: ищем по строке
         except Participant.DoesNotExist:
             return self.create_error_response("Участник не найден", status.HTTP_404_NOT_FOUND)
         
@@ -281,7 +285,7 @@ class UpdateParticipantDemographicsView(BaseAPIView):
         
         return self.create_response({
             "message": "Демографические данные сохранены",
-            "participant_id": participant.id,
+            "participant_id": participant.participant_id,
             "age": participant.age,
             "gender": participant.get_gender_display(),
             "specialization": participant.get_specialization_display() if participant.specialization else None,

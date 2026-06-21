@@ -16,6 +16,9 @@ urlpatterns = [
     path("gonogo/trials/batch/", gonogo_views.BatchSaveGoNoGoTrialDataView.as_view(), name="gonogo-batch-save-trials"),
     path("questionnaire/trials/batch/", questionnaire_views.BatchSaveQuestionnaireTrialDataView.as_view(), name="questionnaire-batch-save-trials"),
 
-    # НОВЫЙ ЭНДПОИНТ для регистрации участника с передачей усталости и специализации
+    # Регистрация с полными данными
     path("participant/register/", questionnaire_views.RegisterParticipantView.as_view(), name="register-participant"),
+
+    # Демографические данные (добавлено!)
+    path("participant/demographics/", views.UpdateParticipantDemographicsView.as_view(), name="participant-demographics"),
 ]

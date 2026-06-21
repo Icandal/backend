@@ -126,7 +126,8 @@ class NBackTrialData(models.Model):
     is_correct = models.BooleanField(null=True, blank=True)
     reaction_time = models.FloatField(null=True, blank=True)
 
-    client_start_time = models.BigIntegerField()
+    # ⚠️ Исправлено: добавил null=True, blank=True
+    client_start_time = models.BigIntegerField(null=True, blank=True)
     client_stimulus_time = models.BigIntegerField(null=True, blank=True)
     client_response_time = models.BigIntegerField(null=True, blank=True)
     client_fixation_time = models.BigIntegerField(null=True, blank=True)
