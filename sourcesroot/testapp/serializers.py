@@ -6,6 +6,7 @@ from .models import (
     GoNoGoTrialData,
     QuestionnaireTrialData,
     FatigueRating,
+    ExperimentSession,
 )
 
 
@@ -250,3 +251,34 @@ class BatchQuestionnaireTrialDataSerializer(serializers.Serializer):
             if serializer.is_valid():
                 trials.append(serializer.save())
         return trials
+
+
+# ---------- НОВЫЙ СЕРИАЛИЗАТОР ДЛЯ РЕГИСТРАЦИИ ----------
+class RegisterParticipantSerializer(serializers.Serializer):
+    participant_id = serializers.CharField(max_length=100)
+    session_number = serializers.CharField(max_length=50)
+    fatigue_rating = serializers.IntegerField(min_value=1, max_value=100)
+    specialization = serializers.CharField(max_length=10, required=False, allow_blank=True, allow_null=True)
+
+    def validate(self, data):
+        if Participant.objects.filter(
+            participant_id=data['participant_id'],
+            session_number=data['session_number']
+        ).exists():
+            raise serializers.ValidationError(
+                "Участник с таким ID и номером сессии уже существует."
+            )
+        return data
+
+    def create(self, validated_data):
+        participant = Participant.objects.create(
+            participant_id=validated_data['participant_id'],
+            session_number=validated_data['session_number'],
+            specialization=validated_data.get('specialization', 'OTHER')
+        )
+        session = ExperimentSession.objects.create(participant=participant)
+        FatigueRating.objects.create(
+            experiment_session=session,
+            rating=validated_data['fatigue_rating']
+        )
+        return participant

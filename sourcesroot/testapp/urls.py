@@ -2,6 +2,7 @@ from django.urls import path
 from . import views, nback_views, gonogo_views, questionnaire_views
 
 urlpatterns = [
+    # Существующие эндпоинты
     path("register/", views.RegisterParticipantView.as_view(), name="register"),
     path("session/start/", views.StartExperimentSessionView.as_view(), name="start-session"),
     path("block/create/", views.CreateExperimentBlockView.as_view(), name="create-block"),
@@ -10,7 +11,11 @@ urlpatterns = [
     path("session/complete/", views.CompleteExperimentSessionView.as_view(), name="complete-session"),
     path("health/", views.health_check, name="health-check"),
 
+    # Эндпоинты для специфических задач
     path("nback/trials/batch/", nback_views.BatchSaveNBackTrialDataView.as_view(), name="nback-batch-save-trials"),
     path("gonogo/trials/batch/", gonogo_views.BatchSaveGoNoGoTrialDataView.as_view(), name="gonogo-batch-save-trials"),
     path("questionnaire/trials/batch/", questionnaire_views.BatchSaveQuestionnaireTrialDataView.as_view(), name="questionnaire-batch-save-trials"),
+
+    # НОВЫЙ ЭНДПОИНТ для регистрации участника с передачей усталости и специализации
+    path("participant/register/", questionnaire_views.RegisterParticipantView.as_view(), name="register-participant"),
 ]
