@@ -96,7 +96,6 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
             if validation_error:
                 return validation_error
 
-            # Создаём или обновляем участника, но НЕ создаём сессию
             participant, created = Participant.objects.get_or_create(
                 participant_id=participant_id,
                 session_number=session_number,
@@ -107,8 +106,6 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
             if not created and specialization is not None:
                 participant.specialization = specialization
                 participant.save()
-
-            # fatigue_rating сохраним позже, при старте сессии
 
             return self.create_response(
                 {
@@ -124,7 +121,6 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
 
 class StartExperimentSessionView(BaseAPIView):
     def post(self, request):
-        # Теперь требуем и participant_id, и session_number
         validation_error = self.validate_required_fields(
             request.data, ["participant_id", "session_number"]
         )
@@ -139,7 +135,6 @@ class StartExperimentSessionView(BaseAPIView):
 
         session = ExperimentSession.objects.create(participant=participant)
 
-        # Если передан fatigue_rating – сохраняем его для этой сессии
         fatigue_rating = request.data.get("fatigue_rating")
         if fatigue_rating is not None:
             FatigueRating.objects.create(
@@ -156,7 +151,6 @@ class StartExperimentSessionView(BaseAPIView):
         )
 
 
-# Остальные вьюхи без изменений
 class CreateExperimentBlockView(BaseAPIView):
     def post(self, request):
         validation_error = self.validate_required_fields(request.data, ["session_id"])
