@@ -2,8 +2,10 @@ from django.urls import path
 from . import views, nback_views, gonogo_views, questionnaire_views
 
 urlpatterns = [
-    # Существующие эндпоинты
-    path("register/", views.RegisterParticipantView.as_view(), name="register"),
+    # Регистрация участника – основной вью с get_or_create (без ошибки 400)
+    path("participant/register/", views.RegisterParticipantView.as_view(), name="register-participant"),
+    
+    # Старт сессии – создаёт новую сессию для существующего участника
     path("session/start/", views.StartExperimentSessionView.as_view(), name="start-session"),
     path("block/create/", views.CreateExperimentBlockView.as_view(), name="create-block"),
     path("trials/batch/", views.BatchSaveTrialDataView.as_view(), name="batch-save-trials"),
@@ -16,9 +18,6 @@ urlpatterns = [
     path("gonogo/trials/batch/", gonogo_views.BatchSaveGoNoGoTrialDataView.as_view(), name="gonogo-batch-save-trials"),
     path("questionnaire/trials/batch/", questionnaire_views.BatchSaveQuestionnaireTrialDataView.as_view(), name="questionnaire-batch-save-trials"),
 
-    # Регистрация с полными данными
-    path("participant/register/", questionnaire_views.RegisterParticipantView.as_view(), name="register-participant"),
-
-    # Демографические данные (добавлено!)
+    # Демографические данные
     path("participant/demographics/", views.UpdateParticipantDemographicsView.as_view(), name="participant-demographics"),
 ]
