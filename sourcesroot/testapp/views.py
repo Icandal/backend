@@ -88,7 +88,7 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
             participant_id = request.data.get("participant_id")
             session_number = request.data.get("session_number")
             fatigue_rating = request.data.get("fatigue_rating")
-            specialization = request.data.get("specialization")  # добавили
+            specialization = request.data.get("specialization")
 
             validation_error = self.validate_required_fields(
                 request.data, ["participant_id", "session_number"]
@@ -96,44 +96,27 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
             if validation_error:
                 return validation_error
 
-            existing = self.get_or_create_object(
-                participant_id=participant_id, session_number=session_number
-            )
-            if existing:
-                session = ExperimentSession.objects.create(participant=existing)
-                if fatigue_rating is not None:
-                    FatigueRating.objects.create(
-                        experiment_session=session,
-                        rating=fatigue_rating
-                    )
-                return self.create_response(
-                    {
-                        "message": "Участник уже зарегистрирован, создана новая сессия",
-                        "participant_id": existing.id,
-                        "session_token": existing.session_token,
-                        "session_id": session.id,
-                    }
-                )
-
-            participant = Participant.objects.create(
+            # Создаём или обновляем участника, но НЕ создаём сессию
+            participant, created = Participant.objects.get_or_create(
                 participant_id=participant_id,
                 session_number=session_number,
-                specialization=specialization,  # сохраняем
+                defaults={
+                    'specialization': specialization,
+                }
             )
-            session = ExperimentSession.objects.create(participant=participant)
-            if fatigue_rating is not None:
-                FatigueRating.objects.create(
-                    experiment_session=session,
-                    rating=fatigue_rating
-                )
+            if not created and specialization is not None:
+                participant.specialization = specialization
+                participant.save()
+
+            # fatigue_rating сохраним позже, при старте сессии
+
             return self.create_response(
                 {
-                    "message": "Регистрация успешна",
-                    "participant_id": participant.id,
+                    "message": "Участник зарегистрирован" if created else "Участник уже существует, данные обновлены",
+                    "participant_id": participant.participant_id,
                     "session_token": participant.session_token,
-                    "session_id": session.id,
                 },
-                status.HTTP_201_CREATED,
+                status.HTTP_201_CREATED if created else status.HTTP_200_OK,
             )
         except Exception as e:
             return self.create_error_response(str(e))
@@ -141,13 +124,28 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
 
 class StartExperimentSessionView(BaseAPIView):
     def post(self, request):
-        validation_error = self.validate_required_fields(request.data, ["participant_id"])
+        # Теперь требуем и participant_id, и session_number
+        validation_error = self.validate_required_fields(
+            request.data, ["participant_id", "session_number"]
+        )
         if validation_error:
             return validation_error
 
-        # Исправлено: ищем по полю participant_id (строковому), а не по id
-        participant = get_object_or_404(Participant, participant_id=request.data.get("participant_id"))
+        participant = get_object_or_404(
+            Participant,
+            participant_id=request.data["participant_id"],
+            session_number=request.data["session_number"]
+        )
+
         session = ExperimentSession.objects.create(participant=participant)
+
+        # Если передан fatigue_rating – сохраняем его для этой сессии
+        fatigue_rating = request.data.get("fatigue_rating")
+        if fatigue_rating is not None:
+            FatigueRating.objects.create(
+                experiment_session=session,
+                rating=fatigue_rating
+            )
 
         return self.create_response(
             {
@@ -158,6 +156,7 @@ class StartExperimentSessionView(BaseAPIView):
         )
 
 
+# Остальные вьюхи без изменений
 class CreateExperimentBlockView(BaseAPIView):
     def post(self, request):
         validation_error = self.validate_required_fields(request.data, ["session_id"])
@@ -193,12 +192,10 @@ class CreateExperimentBlockView(BaseAPIView):
 class BatchSaveTrialDataView(BaseAPIView):
     def post(self, request):
         serializer = BatchTrialDataSerializer(data=request.data)
-
         if not serializer.is_valid():
             return self.create_response(
                 {"errors": serializer.errors}, status.HTTP_400_BAD_REQUEST
             )
-
         try:
             trials = serializer.save()
             return self.create_response(
@@ -223,7 +220,6 @@ class CompleteExperimentBlockView(BaseAPIView):
         block.save()
 
         trial_count = TrialData.objects.filter(experiment_block=block).count()
-
         return self.create_response(
             {
                 "block_id": block.id,
@@ -269,7 +265,7 @@ class UpdateParticipantDemographicsView(BaseAPIView):
         gender_code = 'M' if gender == 'Мужской' else 'F'
         
         try:
-            participant = Participant.objects.get(participant_id=participant_id)  # исправлено: ищем по строке
+            participant = Participant.objects.get(participant_id=participant_id)
         except Participant.DoesNotExist:
             return self.create_error_response("Участник не найден", status.HTTP_404_NOT_FOUND)
         
