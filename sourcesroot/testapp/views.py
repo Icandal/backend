@@ -89,6 +89,8 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
             session_number = request.data.get("session_number")
             fatigue_rating = request.data.get("fatigue_rating")
             specialization = request.data.get("specialization")
+            is_school_student = request.data.get("is_school_student", False)
+            school_class = request.data.get("school_class", "")
 
             validation_error = self.validate_required_fields(
                 request.data, ["participant_id", "session_number"]
@@ -101,10 +103,18 @@ class RegisterParticipantView(BaseCreateOrUpdateView):
                 session_number=session_number,
                 defaults={
                     'specialization': specialization,
+                    'is_school_student': is_school_student,
+                    'school_class': school_class if is_school_student else None,
                 }
             )
-            if not created and specialization is not None:
-                participant.specialization = specialization
+            if not created:
+                if specialization is not None:
+                    participant.specialization = specialization
+                participant.is_school_student = is_school_student
+                if is_school_student and school_class:
+                    participant.school_class = school_class
+                elif not is_school_student:
+                    participant.school_class = None
                 participant.save()
 
             return self.create_response(

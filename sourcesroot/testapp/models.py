@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 import secrets
 
+
 class Participant(models.Model):
     id = models.AutoField(primary_key=True)
     participant_id = models.CharField(max_length=100)
@@ -30,6 +31,10 @@ class Participant(models.Model):
         ('ECO', 'Экономика'),
         ('DES', 'Дизайн'),
         ('OTHER', 'Другое'),
+        ('SOC_ECO', 'Социально-экономический класс'),
+        ('TECH', 'Технический класс'),
+        ('NAT_SCI', 'Естественно-научный класс'),
+        ('UNIV', 'Универсальный класс'),
     ]
     specialization = models.CharField(
         max_length=10,
@@ -38,6 +43,9 @@ class Participant(models.Model):
         blank=True,
         verbose_name="Специализация / направление подготовки"
     )
+    
+    is_school_student = models.BooleanField(default=False, verbose_name="Школьник")
+    school_class = models.CharField(max_length=10, null=True, blank=True, verbose_name="Класс")
 
     class Meta:
         unique_together = ["participant_id", "session_number"]
@@ -126,7 +134,6 @@ class NBackTrialData(models.Model):
     is_correct = models.BooleanField(null=True, blank=True)
     reaction_time = models.FloatField(null=True, blank=True)
 
-    # ⚠️ Исправлено: добавил null=True, blank=True
     client_start_time = models.BigIntegerField(null=True, blank=True)
     client_stimulus_time = models.BigIntegerField(null=True, blank=True)
     client_response_time = models.BigIntegerField(null=True, blank=True)
