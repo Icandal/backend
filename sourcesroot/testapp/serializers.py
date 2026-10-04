@@ -22,13 +22,15 @@ class ParticipantSerializer(serializers.ModelSerializer):
             "age",
             "gender",
             "specialization",
+            "is_school_student",
+            "school_class",
         ]
 
 
 class ParticipantDemographicsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Participant
-        fields = ['id', 'age', 'gender', 'specialization']
+        fields = ['id', 'age', 'gender', 'specialization', 'is_school_student', 'school_class']
         read_only_fields = ['id']
 
 
