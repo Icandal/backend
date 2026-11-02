@@ -9,7 +9,13 @@ SECRET_KEY = os.environ.get(
     "django-insecure-#@0+-i)p51ynry(u@+)#*gylj#hdv$)&0@c$&0qtcxw%-1wuk_",
 )
 DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+# Разрешаем все хосты на Render (* или автоматический подхват onrender.com)
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", ".onrender.com,localhost,127.0.0.1").split(",")
+
+# Настройки для корректной работы за прокси Render (чтобы HTTPS и IP определялись верно)
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 INSTALLED_APPS = [
     "django.contrib.admin",
